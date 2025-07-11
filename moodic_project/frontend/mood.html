@@ -9,26 +9,23 @@
       margin: 0;
       padding: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      background: linear-gradient(120deg, #1db954, #121212);
       color: white;
       text-align: center;
     }
-
     h1 {
       margin-top: 40px;
       font-size: 2.5em;
     }
-
     .moods {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      margin: 30px 20px;
+      margin: 40px 20px;
     }
-
     .mood {
       padding: 15px 25px;
-      margin: 12px;
+      margin: 15px;
       background: #282828;
       border: 2px solid #1db954;
       border-radius: 30px;
@@ -36,25 +33,19 @@
       transition: all 0.3s ease;
       font-size: 1.2em;
     }
-
     .mood.selected {
       background: #1db954;
       color: black;
     }
-
-    .language-select {
-      margin-top: 20px;
+    select {
+      margin-top: 30px;
+      padding: 10px 20px;
       font-size: 1.1em;
-      padding: 10px 15px;
       border-radius: 20px;
       border: none;
-      background: #1db954;
-      color: black;
-      cursor: pointer;
     }
-
     button {
-      margin-top: 40px;
+      margin-top: 30px;
       padding: 12px 30px;
       font-size: 1.1em;
       background: #1db954;
@@ -64,7 +55,6 @@
       cursor: pointer;
       transition: all 0.3s ease;
     }
-
     button:hover {
       background: #1ed760;
     }
@@ -72,7 +62,6 @@
 </head>
 <body>
   <h1>How are you feeling today?</h1>
-
   <div class="moods">
     <div class="mood">Happy</div>
     <div class="mood">Sad</div>
@@ -84,12 +73,14 @@
     <div class="mood">Nostalgic</div>
   </div>
 
-  <select class="language-select" id="languageSelect">
+  <select id="language">
     <option value="english">English</option>
     <option value="hindi">Hindi</option>
     <option value="punjabi">Punjabi</option>
-    <option value="tamil">Tamil</option>
     <option value="telugu">Telugu</option>
+    <option value="bengali">Bengali</option>
+    <option value="tamil">Tamil</option>
+    <option value="kannada">Kannada</option>
   </select>
 
   <br>
@@ -113,7 +104,7 @@
 
     document.getElementById("submitBtn").addEventListener("click", () => {
       const token = new URLSearchParams(window.location.search).get("token");
-      const language = document.getElementById("languageSelect").value;
+      const language = document.getElementById("language").value;
 
       if (!token) {
         alert("Spotify token missing. Please login again.");
@@ -133,8 +124,8 @@
         },
         body: JSON.stringify({
           moods: Array.from(selectedMoods),
-          language,
-          token
+          token: token,
+          language: language
         })
       })
       .then(res => res.json())
