@@ -3,13 +3,15 @@ from flask import Flask, redirect, request, jsonify
 import requests
 from urllib.parse import urlencode
 from dotenv import load_dotenv
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 
 load_dotenv()
 app = Flask(__name__)
-CORS(app)  # 🟢 Enables CORS for all routes
 
-# Load environment variables
+# ✅ CORS config — restrict to your frontend
+CORS(app, origins=["https://moodic.vercel.app"], supports_credentials=True)
+
+# ENV
 CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
@@ -47,7 +49,9 @@ def callback():
 
     return redirect(f"https://moodic.vercel.app/mood.html?token={access_token}")
 
+# ✅ CORS applied explicitly in case general CORS fails
 @app.route("/recommend", methods=["POST"])
+@cross_origin(origin="https://moodic.vercel.app")  # Optional double assurance
 def recommend():
     data = request.get_json()
     print("Received /recommend POST:", data)
@@ -58,7 +62,7 @@ def recommend():
     if not token or not moods:
         return jsonify({"error": "Missing token or moods"}), 400
 
-    # Placeholder logic for tracks (replace with real logic later)
+    # Dummy tracks — replace later
     dummy_tracks = [
         {
             "name": "Song 1",
