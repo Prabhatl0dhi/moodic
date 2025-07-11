@@ -9,7 +9,7 @@
       margin: 0;
       padding: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(120deg, #1db954, #121212);
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       color: white;
       text-align: center;
     }
@@ -23,12 +23,12 @@
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      margin: 40px 20px;
+      margin: 30px 20px;
     }
 
     .mood {
       padding: 15px 25px;
-      margin: 15px;
+      margin: 12px;
       background: #282828;
       border: 2px solid #1db954;
       border-radius: 30px;
@@ -40,6 +40,17 @@
     .mood.selected {
       background: #1db954;
       color: black;
+    }
+
+    .language-select {
+      margin-top: 20px;
+      font-size: 1.1em;
+      padding: 10px 15px;
+      border-radius: 20px;
+      border: none;
+      background: #1db954;
+      color: black;
+      cursor: pointer;
     }
 
     button {
@@ -73,6 +84,15 @@
     <div class="mood">Nostalgic</div>
   </div>
 
+  <select class="language-select" id="languageSelect">
+    <option value="english">English</option>
+    <option value="hindi">Hindi</option>
+    <option value="punjabi">Punjabi</option>
+    <option value="tamil">Tamil</option>
+    <option value="telugu">Telugu</option>
+  </select>
+
+  <br>
   <button id="submitBtn">Get Songs</button>
 
   <script>
@@ -82,7 +102,7 @@
     moods.forEach(mood => {
       mood.addEventListener("click", () => {
         mood.classList.toggle("selected");
-        const text = mood.textContent.toLowerCase();
+        const text = mood.textContent;
         if (selectedMoods.has(text)) {
           selectedMoods.delete(text);
         } else {
@@ -93,6 +113,7 @@
 
     document.getElementById("submitBtn").addEventListener("click", () => {
       const token = new URLSearchParams(window.location.search).get("token");
+      const language = document.getElementById("languageSelect").value;
 
       if (!token) {
         alert("Spotify token missing. Please login again.");
@@ -105,12 +126,26 @@
         return;
       }
 
-      // ✅ Store to sessionStorage for result.html
-      sessionStorage.setItem("token", token);
-      sessionStorage.setItem("selectedMoods", JSON.stringify(Array.from(selectedMoods)));
-
-      // Go to result.html
-      window.location.href = "result.html";
+      fetch("https://moodic-backend.onrender.com/recommend", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          moods: Array.from(selectedMoods),
+          language,
+          token
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        sessionStorage.setItem("songs", JSON.stringify(data.tracks));
+        window.location.href = "result.html";
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Something went wrong. Try again!");
+      });
     });
   </script>
 </body>
