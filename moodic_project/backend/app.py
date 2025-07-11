@@ -13,7 +13,6 @@ CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 
-# Mood to genre mapping
 MOOD_GENRE_MAP = {
     "Happy": ["pop", "dance", "party"],
     "Sad": ["acoustic", "piano", "sad"],
@@ -72,7 +71,7 @@ def recommend():
         "Authorization": f"Bearer {token}"
     }
 
-    # Compile genres from selected moods
+    # Merge genre list from moods
     genres = set()
     for mood in moods:
         genres.update(MOOD_GENRE_MAP.get(mood, []))
@@ -80,12 +79,11 @@ def recommend():
     if not genres:
         return jsonify({"tracks": []})
 
-    genre_string = ",".join(list(genres)[:5])  # Max 5 seed genres
+    genre_string = ",".join(list(genres)[:5])  # max 5 seed genres
 
-    # Get recommendations from Spotify
     params = {
         "seed_genres": genre_string,
-        "limit": 20,
+        "limit": 50,  # fetch more, filter later
         "market": "IN",
         "min_popularity": 50
     }
@@ -100,16 +98,17 @@ def recommend():
     tracks = []
 
     for item in items:
-        if not item.get("preview_url"):
-            continue  # Skip if no preview
+        if item.get("preview_url"):
+            tracks.append({
+                "name": item["name"],
+                "artist": item["artists"][0]["name"],
+                "preview_url": item["preview_url"],
+                "image": item["album"]["images"][0]["url"] if item["album"]["images"] else "",
+                "spotify_url": item["external_urls"]["spotify"]
+            })
 
-        track = {
-            "name": item["name"],
-            "artist": item["artists"][0]["name"],
-            "preview_url": item["preview_url"],
-            "image": item["album"]["images"][0]["url"] if item["album"]["images"] else ""
-        }
-        tracks.append(track)
+        if len(tracks) >= 20:
+            break
 
     return jsonify({"tracks": tracks})
 
