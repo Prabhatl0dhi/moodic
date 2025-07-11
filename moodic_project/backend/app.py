@@ -7,12 +7,12 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
-# Load env variables
+# Load environment variables
 CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI")  # should be: https://moodic-backend.onrender.com/callback
+REDIRECT_URI = os.getenv("REDIRECT_URI")  # Should be your Render backend URL + /callback
 
-# Login route
+# Route to start login with Spotify
 @app.route("/login")
 def login():
     auth_url = "https://accounts.spotify.com/authorize"
@@ -24,7 +24,7 @@ def login():
     }
     return redirect(f"{auth_url}?{urlencode(params)}")
 
-# Callback route
+# Spotify redirect URI callback route
 @app.route("/callback")
 def callback():
     code = request.args.get("code")
@@ -38,7 +38,7 @@ def callback():
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-    # Get token
+    # Step 1: Get access token
     res = requests.post(token_url, data=payload, headers=headers)
     token_data = res.json()
     access_token = token_data.get("access_token")
@@ -46,58 +46,50 @@ def callback():
     if not access_token:
         return jsonify({"error": "Failed to get access token", "details": token_data})
 
-    # Redirect to mood.html with token
+    # Step 2: Redirect to frontend mood page with token
     return redirect(f"https://moodic.vercel.app/mood.html?token={access_token}")
 
-# Recommend route
+# Recommend songs based on mood
 @app.route("/recommend", methods=["POST"])
 def recommend():
     data = request.get_json()
     token = data.get("token")
-    moods = data.get("moods")
+    moods = data.get("moods", [])
 
     if not token or not moods:
         return jsonify({"error": "Missing token or moods"}), 400
 
-    # Mood to genre mapping
-    mood_to_genre = {
-        "happy": "pop",
-        "sad": "acoustic",
-        "romantic": "romance",
-        "energetic": "work-out",
-        "calm": "chill",
-        "party": "party"
-    }
+    try:
+        all_tracks = []
 
-    genres = [mood_to_genre.get(m.lower()) for m in moods if mood_to_genre.get(m.lower())]
-    if not genres:
-        return jsonify({"error": "No matching genres for moods"}), 400
+        for mood in moods:
+            q = f"{mood} mood"
+            res = requests.get(
+                "https://api.spotify.com/v1/search",
+                headers={"Authorization": f"Bearer {token}"},
+                params={"q": q, "type": "track", "limit": 1}
+            )
+            res_data = res.json()
 
-    genre_param = ",".join(genres[:5])  # max 5 genres
-    endpoint = f"https://api.spotify.com/v1/recommendations?seed_genres={genre_param}&limit=10"
+            if "tracks" in res_data and res_data["tracks"]["items"]:
+                track = res_data["tracks"]["items"][0]
+                track_info = {
+                    "name": track["name"],
+                    "artist": track["artists"][0]["name"],
+                    "preview_url": track["preview_url"],
+                    "image": track["album"]["images"][0]["url"] if track["album"]["images"] else "",
+                }
+                all_tracks.append(track_info)
 
-    headers = {"Authorization": f"Bearer {token}"}
-    res = requests.get(endpoint, headers=headers)
+        return jsonify({"tracks": all_tracks})
 
-    if res.status_code != 200:
-        return jsonify({"error": "Failed to fetch from Spotify", "details": res.json()}), 500
+    except Exception as e:
+        return jsonify({"error": "Server error", "message": str(e)}), 500
 
-    data = res.json()
-    tracks = []
-    for track in data["tracks"]:
-        tracks.append({
-            "name": track["name"],
-            "artist": track["artists"][0]["name"],
-            "image": track["album"]["images"][0]["url"] if track["album"]["images"] else "",
-            "preview_url": track["preview_url"]
-        })
-
-    return jsonify({"tracks": tracks})
-
-# Fallback route
+# Default root route
 @app.route("/")
 def home():
-    return "🎧 Moodic backend is live!"
+    return "Moodic backend is running."
 
 if __name__ == "__main__":
     app.run(debug=True)
