@@ -13,6 +13,18 @@ CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 
+# Mood to genre mapping
+MOOD_GENRE_MAP = {
+    "Happy": ["pop", "dance", "party"],
+    "Sad": ["acoustic", "piano", "sad"],
+    "Energetic": ["work-out", "edm", "electronic"],
+    "Romantic": ["romance", "r-n-b", "soul"],
+    "Chill": ["chill", "ambient", "lo-fi"],
+    "Angry": ["metal", "punk", "hard-rock"],
+    "Motivated": ["motivational", "pop", "hip-hop"],
+    "Nostalgic": ["old-school", "classical", "retro"]
+}
+
 @app.route("/login")
 def login():
     auth_url = "https://accounts.spotify.com/authorize"
@@ -49,8 +61,6 @@ def callback():
 @app.route("/recommend", methods=["POST"])
 def recommend():
     data = request.get_json()
-    print("Received /recommend POST:", data)
-
     token = data.get("token")
     moods = data.get("moods", [])
     language = data.get("language", "english")
@@ -62,29 +72,44 @@ def recommend():
         "Authorization": f"Bearer {token}"
     }
 
+    # Compile genres from selected moods
+    genres = set()
+    for mood in moods:
+        genres.update(MOOD_GENRE_MAP.get(mood, []))
+
+    if not genres:
+        return jsonify({"tracks": []})
+
+    genre_string = ",".join(list(genres)[:5])  # Max 5 seed genres
+
+    # Get recommendations from Spotify
+    params = {
+        "seed_genres": genre_string,
+        "limit": 20,
+        "market": "IN",
+        "min_popularity": 50
+    }
+
+    res = requests.get("https://api.spotify.com/v1/recommendations", headers=headers, params=params)
+
+    if res.status_code != 200:
+        print("Spotify API error:", res.text)
+        return jsonify({"error": "Failed to fetch recommendations"})
+
+    items = res.json().get("tracks", [])
     tracks = []
 
-    for mood in moods:
-        query = f"{mood} {language} music"
-        params = {
-            "q": query,
-            "type": "track",
-            "limit": 5
+    for item in items:
+        if not item.get("preview_url"):
+            continue  # Skip if no preview
+
+        track = {
+            "name": item["name"],
+            "artist": item["artists"][0]["name"],
+            "preview_url": item["preview_url"],
+            "image": item["album"]["images"][0]["url"] if item["album"]["images"] else ""
         }
-        res = requests.get("https://api.spotify.com/v1/search", headers=headers, params=params)
-
-        if res.status_code != 200:
-            print("Spotify API Error:", res.text)
-            continue
-
-        items = res.json().get("tracks", {}).get("items", [])
-        for item in items:
-            tracks.append({
-                "name": item["name"],
-                "artist": item["artists"][0]["name"],
-                "preview_url": item["preview_url"],
-                "image": item["album"]["images"][0]["url"] if item["album"]["images"] else ""
-            })
+        tracks.append(track)
 
     return jsonify({"tracks": tracks})
 
