@@ -1,5 +1,5 @@
 import os
-from flask import Flask, redirect, request
+from flask import Flask, redirect, request, jsonify
 import requests
 from urllib.parse import urlencode
 from dotenv import load_dotenv
@@ -7,9 +7,14 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
+# Load environment variables
 CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
+
+@app.route("/")
+def home():
+    return "Moodic Backend is Running 🎧"
 
 @app.route("/login")
 def login():
@@ -34,8 +39,26 @@ def callback():
         "client_secret": CLIENT_SECRET,
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
+    # Step 1: Get tokens
     res = requests.post(token_url, data=payload, headers=headers)
-    return res.json()
+    token_data = res.json()
+    access_token = token_data.get("access_token")
+
+    if not access_token:
+        return jsonify({"error": "Failed to get access token", "details": token_data})
+
+    # Step 2: Use token to get user profile
+    profile_response = requests.get(
+        "https://api.spotify.com/v1/me",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    user_profile = profile_response.json()
+
+    return jsonify({
+        "token_data": token_data,
+        "user_profile": user_profile
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)
