@@ -24,7 +24,7 @@
       justify-content: center;
       margin-top: 30px;
       gap: 20px;
-      padding: 0 20px;
+      padding: 0 20px 50px;
     }
 
     .track {
@@ -32,8 +32,13 @@
       border-radius: 15px;
       padding: 20px;
       width: 250px;
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s ease;
+    }
+
+    .track:hover {
+      transform: scale(1.03);
     }
 
     .track img {
@@ -69,36 +74,21 @@
   <div class="tracks-container" id="tracksContainer"></div>
 
   <script>
-    // Get token and moods from sessionStorage or URL
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token') || sessionStorage.getItem("token");
-    const moods = JSON.parse(sessionStorage.getItem("selectedMoods") || "[]");
+    const storedSongs = sessionStorage.getItem("songs");
 
-    if (!token || moods.length === 0) {
-      document.getElementById("error").innerText = "Missing token or moods. Please go back.";
+    if (!token || !storedSongs) {
+      document.getElementById("error").innerText = "Missing token or tracks. Please go back.";
     } else {
-      // Save token for future use
       sessionStorage.setItem("token", token);
+      const tracks = JSON.parse(storedSongs);
+      const container = document.getElementById("tracksContainer");
 
-      fetch("https://moodic-backend.onrender.com/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, moods })
-      })
-      .then(res => res.json())
-      .then(data => {
-        const container = document.getElementById("tracksContainer");
-        if (data.error || !data.tracks) {
-          document.getElementById("error").innerText = "Something went wrong. Try again.";
-          return;
-        }
-
-        if (data.tracks.length === 0) {
-          container.innerHTML = "<p>No tracks found for the selected mood(s).</p>";
-          return;
-        }
-
-        data.tracks.forEach(track => {
+      if (!Array.isArray(tracks) || tracks.length === 0) {
+        container.innerHTML = "<p>No tracks found for the selected mood(s).</p>";
+      } else {
+        tracks.forEach(track => {
           const div = document.createElement("div");
           div.className = "track";
           div.innerHTML = `
@@ -109,11 +99,7 @@
           `;
           container.appendChild(div);
         });
-      })
-      .catch(err => {
-        document.getElementById("error").innerText = "Network error. Please try again.";
-        console.error(err);
-      });
+      }
     }
   </script>
 </body>
