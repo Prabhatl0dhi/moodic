@@ -3,15 +3,12 @@ from flask import Flask, redirect, request, jsonify
 import requests
 from urllib.parse import urlencode
 from dotenv import load_dotenv
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 
 load_dotenv()
 app = Flask(__name__)
+CORS(app)
 
-# ✅ CORS config — restrict to your frontend
-CORS(app, origins=["https://moodic.vercel.app"], supports_credentials=True)
-
-# ENV
 CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
@@ -49,30 +46,31 @@ def callback():
 
     return redirect(f"https://moodic.vercel.app/mood.html?token={access_token}")
 
-# ✅ CORS applied explicitly in case general CORS fails
 @app.route("/recommend", methods=["POST"])
-@cross_origin(origin="https://moodic.vercel.app")  # Optional double assurance
 def recommend():
     data = request.get_json()
-    print("Received /recommend POST:", data)
-
     token = data.get("token")
     moods = data.get("moods")
+    language = data.get("language")
 
-    if not token or not moods:
-        return jsonify({"error": "Missing token or moods"}), 400
+    print("🎯 Received Request:")
+    print("Moods:", moods)
+    print("Language:", language)
 
-    # Dummy tracks — replace later
+    if not token or not moods or not language:
+        return jsonify({"error": "Missing token, moods, or language"}), 400
+
+    # 🔁 Replace this with real logic based on moods + language
     dummy_tracks = [
         {
-            "name": "Song 1",
-            "artist": "Artist A",
+            "name": f"{language.title()} Mood Track 1",
+            "artist": f"{language.title()} Artist A",
             "preview_url": "https://p.scdn.co/mp3-preview/sample1",
             "image": "https://via.placeholder.com/150"
         },
         {
-            "name": "Song 2",
-            "artist": "Artist B",
+            "name": f"{language.title()} Mood Track 2",
+            "artist": f"{language.title()} Artist B",
             "preview_url": "https://p.scdn.co/mp3-preview/sample2",
             "image": "https://via.placeholder.com/150"
         }
@@ -82,7 +80,7 @@ def recommend():
 
 @app.route("/")
 def home():
-    return "Moodic backend is running."
+    return "✅ Moodic backend is running."
 
 if __name__ == "__main__":
     app.run(debug=True)
