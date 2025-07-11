@@ -2,85 +2,115 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Select Your Mood | Moodic</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Select Your Mood - Moodic</title>
   <style>
     body {
-      background-color: #121212;
-      color: #fff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(120deg, #121212, #1DB954);
+      color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 60px 20px;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
     }
 
     h1 {
-      color: #1DB954;
-      font-size: 2.5rem;
+      font-size: 3rem;
       margin-bottom: 30px;
     }
 
-    form {
+    .mood-buttons {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 15px;
-      width: 300px;
+      max-width: 700px;
     }
 
-    label {
-      background-color: #282828;
-      border-radius: 25px;
-      padding: 12px 20px;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-
-    label:hover {
-      background-color: #383838;
-    }
-
-    input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      accent-color: #1DB954;
-    }
-
-    button {
-      margin-top: 30px;
-      padding: 12px 25px;
-      font-size: 1rem;
+    .mood-btn {
+      padding: 15px 30px;
+      font-size: 16px;
+      border-radius: 50px;
       border: none;
-      border-radius: 25px;
       background-color: #1DB954;
       color: white;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      transition: 0.3s ease;
     }
 
-    button:hover {
-      background-color: #17a34a;
+    .mood-btn:hover {
+      background-color: #17a74a;
+    }
+
+    .mood-btn.selected {
+      background-color: white;
+      color: #1DB954;
+      border: 2px solid #1DB954;
+    }
+
+    #submitBtn {
+      margin-top: 40px;
+      padding: 14px 40px;
+      font-size: 18px;
+      background-color: #1DB954;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    #submitBtn:hover {
+      background-color: #14833b;
     }
   </style>
 </head>
 <body>
 
-  <h1>What's Your Mood Today?</h1>
+  <h1>What’s your vibe today? 🎶</h1>
 
-  <form action="https://moodic-backend.onrender.com/recommend" method="POST">
-    <label><input type="checkbox" name="mood" value="happy">Happy</label>
-    <label><input type="checkbox" name="mood" value="sad">Sad</label>
-    <label><input type="checkbox" name="mood" value="romantic">Romantic</label>
-    <label><input type="checkbox" name="mood" value="energetic">Energetic</label>
-    <label><input type="checkbox" name="mood" value="calm">Calm</label>
-    <label><input type="checkbox" name="mood" value="melancholy">Melancholy</label>
+  <div class="mood-buttons">
+    <button class="mood-btn" data-mood="happy">Happy</button>
+    <button class="mood-btn" data-mood="sad">Sad</button>
+    <button class="mood-btn" data-mood="energetic">Energetic</button>
+    <button class="mood-btn" data-mood="chill">Chill</button>
+    <button class="mood-btn" data-mood="romantic">Romantic</button>
+    <button class="mood-btn" data-mood="motivated">Motivated</button>
+    <button class="mood-btn" data-mood="lonely">Lonely</button>
+    <button class="mood-btn" data-mood="nostalgic">Nostalgic</button>
+  </div>
 
-    <button type="submit">Get My Playlist</button>
-  </form>
+  <button id="submitBtn">Continue</button>
+
+  <script>
+    const selectedMoods = new Set();
+    const buttons = document.querySelectorAll('.mood-btn');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mood = btn.dataset.mood;
+        if (selectedMoods.has(mood)) {
+          selectedMoods.delete(mood);
+          btn.classList.remove('selected');
+        } else {
+          selectedMoods.add(mood);
+          btn.classList.add('selected');
+        }
+      });
+    });
+
+    document.getElementById('submitBtn').addEventListener('click', () => {
+      if (selectedMoods.size === 0) {
+        alert('Please select at least one mood!');
+        return;
+      }
+      const moodList = Array.from(selectedMoods).join(',');
+      window.location.href = `result.html?moods=${encodeURIComponent(moodList)}`;
+    });
+  </script>
 
 </body>
 </html>
