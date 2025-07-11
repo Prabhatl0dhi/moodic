@@ -49,38 +49,48 @@ def callback():
 @app.route("/recommend", methods=["POST"])
 def recommend():
     data = request.get_json()
+    print("Received /recommend POST:", data)
+
     token = data.get("token")
-    moods = data.get("moods")
-    language = data.get("language")
+    moods = data.get("moods", [])
+    language = data.get("language", "english")
 
-    print("🎯 Received Request:")
-    print("Moods:", moods)
-    print("Language:", language)
+    if not token or not moods:
+        return jsonify({"error": "Missing token or moods"}), 400
 
-    if not token or not moods or not language:
-        return jsonify({"error": "Missing token, moods, or language"}), 400
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
 
-    # 🔁 Replace this with real logic based on moods + language
-    dummy_tracks = [
-        {
-            "name": f"{language.title()} Mood Track 1",
-            "artist": f"{language.title()} Artist A",
-            "preview_url": "https://p.scdn.co/mp3-preview/sample1",
-            "image": "https://via.placeholder.com/150"
-        },
-        {
-            "name": f"{language.title()} Mood Track 2",
-            "artist": f"{language.title()} Artist B",
-            "preview_url": "https://p.scdn.co/mp3-preview/sample2",
-            "image": "https://via.placeholder.com/150"
+    tracks = []
+
+    for mood in moods:
+        query = f"{mood} {language} music"
+        params = {
+            "q": query,
+            "type": "track",
+            "limit": 5
         }
-    ]
+        res = requests.get("https://api.spotify.com/v1/search", headers=headers, params=params)
 
-    return jsonify({"tracks": dummy_tracks})
+        if res.status_code != 200:
+            print("Spotify API Error:", res.text)
+            continue
+
+        items = res.json().get("tracks", {}).get("items", [])
+        for item in items:
+            tracks.append({
+                "name": item["name"],
+                "artist": item["artists"][0]["name"],
+                "preview_url": item["preview_url"],
+                "image": item["album"]["images"][0]["url"] if item["album"]["images"] else ""
+            })
+
+    return jsonify({"tracks": tracks})
 
 @app.route("/")
 def home():
-    return "✅ Moodic backend is running."
+    return "Moodic backend is running."
 
 if __name__ == "__main__":
     app.run(debug=True)
