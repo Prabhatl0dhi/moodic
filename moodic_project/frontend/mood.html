@@ -13,16 +13,19 @@
       color: white;
       text-align: center;
     }
+
     h1 {
       margin-top: 40px;
       font-size: 2.5em;
     }
+
     .moods {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       margin: 40px 20px;
     }
+
     .mood {
       padding: 15px 25px;
       margin: 15px;
@@ -33,10 +36,12 @@
       transition: all 0.3s ease;
       font-size: 1.2em;
     }
+
     .mood.selected {
       background: #1db954;
       color: black;
     }
+
     button {
       margin-top: 40px;
       padding: 12px 30px;
@@ -48,6 +53,7 @@
       cursor: pointer;
       transition: all 0.3s ease;
     }
+
     button:hover {
       background: #1ed760;
     }
@@ -55,6 +61,7 @@
 </head>
 <body>
   <h1>How are you feeling today?</h1>
+
   <div class="moods">
     <div class="mood">Happy</div>
     <div class="mood">Sad</div>
@@ -65,6 +72,7 @@
     <div class="mood">Motivated</div>
     <div class="mood">Nostalgic</div>
   </div>
+
   <button id="submitBtn">Get Songs</button>
 
   <script>
@@ -74,7 +82,7 @@
     moods.forEach(mood => {
       mood.addEventListener("click", () => {
         mood.classList.toggle("selected");
-        const text = mood.textContent;
+        const text = mood.textContent.toLowerCase();
         if (selectedMoods.has(text)) {
           selectedMoods.delete(text);
         } else {
@@ -97,25 +105,12 @@
         return;
       }
 
-      fetch("https://moodic-backend.onrender.com/recommend", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          moods: Array.from(selectedMoods),
-          token: token
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        sessionStorage.setItem("songs", JSON.stringify(data.tracks));
-        window.location.href = "result.html";
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Something went wrong. Try again!");
-      });
+      // ✅ Store to sessionStorage for result.html
+      sessionStorage.setItem("token", token);
+      sessionStorage.setItem("selectedMoods", JSON.stringify(Array.from(selectedMoods)));
+
+      // Go to result.html
+      window.location.href = "result.html";
     });
   </script>
 </body>
