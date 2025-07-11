@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Select Your Mood | Moodic</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px;
+    }
+
+    h1 {
+      color: #1DB954;
+      font-size: 2.5rem;
+      margin-bottom: 30px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 300px;
+    }
+
+    label {
+      background-color: #282828;
+      border-radius: 25px;
+      padding: 12px 20px;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    label:hover {
+      background-color: #383838;
+    }
+
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #1DB954;
+    }
+
+    button {
+      margin-top: 30px;
+      padding: 12px 25px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 25px;
+      background-color: #1DB954;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #17a34a;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>What's Your Mood Today?</h1>
+
+  <form action="https://moodic-backend.onrender.com/recommend" method="POST">
+    <label><input type="checkbox" name="mood" value="happy">Happy</label>
+    <label><input type="checkbox" name="mood" value="sad">Sad</label>
+    <label><input type="checkbox" name="mood" value="romantic">Romantic</label>
+    <label><input type="checkbox" name="mood" value="energetic">Energetic</label>
+    <label><input type="checkbox" name="mood" value="calm">Calm</label>
+    <label><input type="checkbox" name="mood" value="melancholy">Melancholy</label>
+
+    <button type="submit">Get My Playlist</button>
+  </form>
+
+</body>
+</html>
