@@ -10,12 +10,9 @@ app = Flask(__name__)
 # Load environment variables
 CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI")
+REDIRECT_URI = os.getenv("REDIRECT_URI")  # Should be: https://moodic-backend.onrender.com/callback
 
-@app.route("/")
-def home():
-    return "Moodic Backend is Running 🎧"
-
+# Spotify Login Route
 @app.route("/login")
 def login():
     auth_url = "https://accounts.spotify.com/authorize"
@@ -27,6 +24,7 @@ def login():
     }
     return redirect(f"{auth_url}?{urlencode(params)}")
 
+# Spotify Redirect Callback Route
 @app.route("/callback")
 def callback():
     code = request.args.get("code")
@@ -40,7 +38,7 @@ def callback():
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-    # Step 1: Get tokens
+    # Step 1: Get token from Spotify
     res = requests.post(token_url, data=payload, headers=headers)
     token_data = res.json()
     access_token = token_data.get("access_token")
@@ -48,17 +46,13 @@ def callback():
     if not access_token:
         return jsonify({"error": "Failed to get access token", "details": token_data})
 
-    # Step 2: Use token to get user profile
-    profile_response = requests.get(
-        "https://api.spotify.com/v1/me",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
-    user_profile = profile_response.json()
+    # Step 2: Redirect to mood.html with token
+    return redirect(f"https://moodic.vercel.app/mood.html?token={access_token}")
 
-    return jsonify({
-        "token_data": token_data,
-        "user_profile": user_profile
-    })
+# Home fallback
+@app.route("/")
+def home():
+    return "Moodic backend is running."
 
 if __name__ == "__main__":
     app.run(debug=True)
