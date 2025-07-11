@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>Callback</title></head>
+<body>
+<script>
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  const token = params.get("access_token");
+  if (token) {
+    localStorage.setItem("spotify_token", token);
+    window.location.href = "/";
+  } else {
+    document.body.innerHTML = "Error: No token";
+  }
+</script>
+</body>
+</html>
