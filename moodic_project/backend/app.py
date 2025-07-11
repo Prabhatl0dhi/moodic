@@ -7,28 +7,12 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
-# Environment variables
+# Load env variables
 CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI")  # Should match Spotify app settings
+REDIRECT_URI = os.getenv("REDIRECT_URI")  # should be: https://moodic-backend.onrender.com/callback
 
-# Mood to genre mapping
-MOOD_TO_GENRES = {
-    "Happy": ["pop", "dance"],
-    "Sad": ["acoustic", "piano"],
-    "Energetic": ["work-out", "electronic"],
-    "Romantic": ["romance", "r-n-b"],
-    "Chill": ["chill", "lo-fi"],
-    "Angry": ["metal", "punk"],
-    "Motivated": ["hip-hop", "power-pop"],
-    "Nostalgic": ["classic-rock", "old-school"]
-}
-
-@app.route("/")
-def home():
-    return "Moodic backend is running 🎶"
-
-# Spotify login redirect
+# Login route
 @app.route("/login")
 def login():
     auth_url = "https://accounts.spotify.com/authorize"
@@ -40,7 +24,7 @@ def login():
     }
     return redirect(f"{auth_url}?{urlencode(params)}")
 
-# Spotify callback
+# Callback route
 @app.route("/callback")
 def callback():
     code = request.args.get("code")
@@ -54,7 +38,7 @@ def callback():
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-    # Step 1: Get token
+    # Get token
     res = requests.post(token_url, data=payload, headers=headers)
     token_data = res.json()
     access_token = token_data.get("access_token")
@@ -62,53 +46,58 @@ def callback():
     if not access_token:
         return jsonify({"error": "Failed to get access token", "details": token_data})
 
-    # Step 2: Redirect to mood page with token
+    # Redirect to mood.html with token
     return redirect(f"https://moodic.vercel.app/mood.html?token={access_token}")
 
-# Recommend songs based on moods
+# Recommend route
 @app.route("/recommend", methods=["POST"])
 def recommend():
     data = request.get_json()
     token = data.get("token")
-    moods = data.get("moods", [])
+    moods = data.get("moods")
 
     if not token or not moods:
         return jsonify({"error": "Missing token or moods"}), 400
 
-    # Combine genres
-    seed_genres = []
-    for mood in moods:
-        genres = MOOD_TO_GENRES.get(mood, [])
-        seed_genres.extend(genres)
-
-    # Unique and max 5 genres
-    seed_genres = list(set(seed_genres))[:5]
-
-    rec_url = "https://api.spotify.com/v1/recommendations"
-    params = {
-        "seed_genres": ",".join(seed_genres),
-        "limit": 10,
-    }
-    headers = {
-        "Authorization": f"Bearer {token}"
+    # Mood to genre mapping
+    mood_to_genre = {
+        "happy": "pop",
+        "sad": "acoustic",
+        "romantic": "romance",
+        "energetic": "work-out",
+        "calm": "chill",
+        "party": "party"
     }
 
-    res = requests.get(rec_url, headers=headers, params=params)
+    genres = [mood_to_genre.get(m.lower()) for m in moods if mood_to_genre.get(m.lower())]
+    if not genres:
+        return jsonify({"error": "No matching genres for moods"}), 400
+
+    genre_param = ",".join(genres[:5])  # max 5 genres
+    endpoint = f"https://api.spotify.com/v1/recommendations?seed_genres={genre_param}&limit=10"
+
+    headers = {"Authorization": f"Bearer {token}"}
+    res = requests.get(endpoint, headers=headers)
+
     if res.status_code != 200:
-        return jsonify({"error": "Failed to fetch recommendations", "details": res.json()}), res.status_code
+        return jsonify({"error": "Failed to fetch from Spotify", "details": res.json()}), 500
 
-    tracks_data = res.json().get("tracks", [])
+    data = res.json()
     tracks = []
-    for track in tracks_data:
-        track_info = {
+    for track in data["tracks"]:
+        tracks.append({
             "name": track["name"],
             "artist": track["artists"][0]["name"],
             "image": track["album"]["images"][0]["url"] if track["album"]["images"] else "",
-            "preview_url": track["preview_url"]  # May be None
-        }
-        tracks.append(track_info)
+            "preview_url": track["preview_url"]
+        })
 
     return jsonify({"tracks": tracks})
+
+# Fallback route
+@app.route("/")
+def home():
+    return "🎧 Moodic backend is live!"
 
 if __name__ == "__main__":
     app.run(debug=True)
