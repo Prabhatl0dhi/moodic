@@ -7,9 +7,8 @@ from flask_cors import CORS
 
 load_dotenv()
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend
+CORS(app)
 
-# Load credentials
 CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
@@ -57,52 +56,32 @@ def recommend():
     if not token or not moods:
         return jsonify({"error": "Missing token or moods"}), 400
 
-    print("🔑 Token:", token[:20] + "...")  # hide full token
-    print("🧠 Moods:", moods)
-    print("🌐 Language:", language)
-
     headers = {
         "Authorization": f"Bearer {token}"
     }
 
     tracks = []
-
     for mood in moods:
         query = f"{mood} {language} music"
-        print(f"🔍 Query: {query}")
-
         params = {
             "q": query,
             "type": "track",
-            "limit": 50
+            "limit": 5
         }
-
         res = requests.get("https://api.spotify.com/v1/search", headers=headers, params=params)
-        print("📡 Status Code:", res.status_code)
 
         if res.status_code != 200:
-            print("❌ Spotify API Error:", res.text)
             continue
 
-        try:
-            items = res.json().get("tracks", {}).get("items", [])
-            for item in items:
-                if item.get("preview_url"):  # Only if playable
-                    tracks.append({
-                        "name": item["name"],
-                        "artist": item["artists"][0]["name"],
-                        "preview_url": item["preview_url"],
-                        "image": item["album"]["images"][0]["url"] if item["album"]["images"] else ""
-                    })
-                if len(tracks) >= 20:
-                    break
-        except Exception as e:
-            print("❌ JSON parse error:", str(e))
+        items = res.json().get("tracks", {}).get("items", [])
+        for item in items:
+            tracks.append({
+                "name": item["name"],
+                "artist": item["artists"][0]["name"],
+                "preview_url": item["preview_url"],
+                "image": item["album"]["images"][0]["url"] if item["album"]["images"] else ""
+            })
 
-        if len(tracks) >= 20:
-            break
-
-    print(f"✅ Returning {len(tracks)} tracks")
     return jsonify({"tracks": tracks})
 
 @app.route("/")
