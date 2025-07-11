@@ -3,16 +3,17 @@ from flask import Flask, redirect, request, jsonify
 import requests
 from urllib.parse import urlencode
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 load_dotenv()
 app = Flask(__name__)
+CORS(app)  # 🟢 Enables CORS for all routes
 
 # Load environment variables
 CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI")  # Should be your Render backend URL + /callback
+REDIRECT_URI = os.getenv("REDIRECT_URI")
 
-# Route to start login with Spotify
 @app.route("/login")
 def login():
     auth_url = "https://accounts.spotify.com/authorize"
@@ -24,7 +25,6 @@ def login():
     }
     return redirect(f"{auth_url}?{urlencode(params)}")
 
-# Spotify redirect URI callback route
 @app.route("/callback")
 def callback():
     code = request.args.get("code")
@@ -38,7 +38,6 @@ def callback():
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-    # Step 1: Get access token
     res = requests.post(token_url, data=payload, headers=headers)
     token_data = res.json()
     access_token = token_data.get("access_token")
@@ -46,47 +45,37 @@ def callback():
     if not access_token:
         return jsonify({"error": "Failed to get access token", "details": token_data})
 
-    # Step 2: Redirect to frontend mood page with token
     return redirect(f"https://moodic.vercel.app/mood.html?token={access_token}")
 
-# Recommend songs based on mood
 @app.route("/recommend", methods=["POST"])
 def recommend():
     data = request.get_json()
+    print("Received /recommend POST:", data)
+
     token = data.get("token")
-    moods = data.get("moods", [])
+    moods = data.get("moods")
 
     if not token or not moods:
         return jsonify({"error": "Missing token or moods"}), 400
 
-    try:
-        all_tracks = []
+    # Placeholder logic for tracks (replace with real logic later)
+    dummy_tracks = [
+        {
+            "name": "Song 1",
+            "artist": "Artist A",
+            "preview_url": "https://p.scdn.co/mp3-preview/sample1",
+            "image": "https://via.placeholder.com/150"
+        },
+        {
+            "name": "Song 2",
+            "artist": "Artist B",
+            "preview_url": "https://p.scdn.co/mp3-preview/sample2",
+            "image": "https://via.placeholder.com/150"
+        }
+    ]
 
-        for mood in moods:
-            q = f"{mood} mood"
-            res = requests.get(
-                "https://api.spotify.com/v1/search",
-                headers={"Authorization": f"Bearer {token}"},
-                params={"q": q, "type": "track", "limit": 1}
-            )
-            res_data = res.json()
+    return jsonify({"tracks": dummy_tracks})
 
-            if "tracks" in res_data and res_data["tracks"]["items"]:
-                track = res_data["tracks"]["items"][0]
-                track_info = {
-                    "name": track["name"],
-                    "artist": track["artists"][0]["name"],
-                    "preview_url": track["preview_url"],
-                    "image": track["album"]["images"][0]["url"] if track["album"]["images"] else "",
-                }
-                all_tracks.append(track_info)
-
-        return jsonify({"tracks": all_tracks})
-
-    except Exception as e:
-        return jsonify({"error": "Server error", "message": str(e)}), 500
-
-# Default root route
 @app.route("/")
 def home():
     return "Moodic backend is running."
