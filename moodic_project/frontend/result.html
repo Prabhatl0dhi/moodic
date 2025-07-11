@@ -1,61 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Results | Moodic</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Moodic - Results</title>
   <style>
     body {
+      background: linear-gradient(to bottom right, #121212, #1DB954);
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #1db954, #191414);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
+      text-align: center;
     }
 
     h1 {
-      margin: 40px 0 20px;
+      margin-top: 40px;
       font-size: 2.5rem;
     }
 
-    .player-card {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-      padding: 30px;
-      width: 90%;
-      max-width: 400px;
+    .tracks-container {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 30px;
+      gap: 20px;
+      padding: 0 20px;
     }
 
-    .cover {
-      width: 100%;
-      aspect-ratio: 1/1;
+    .track {
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 15px;
-      object-fit: cover;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      width: 250px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(8px);
     }
 
-    .song-title {
+    .track img {
+      width: 100%;
+      border-radius: 12px;
+    }
+
+    .track h3 {
+      margin: 10px 0 5px;
       font-size: 1.2rem;
-      font-weight: bold;
-      text-align: center;
     }
 
-    .artist {
+    .track p {
+      margin: 0 0 10px;
       font-size: 0.95rem;
-      opacity: 0.8;
-      text-align: center;
+      color: #ccc;
     }
 
     audio {
@@ -63,33 +57,64 @@
       outline: none;
     }
 
-    .back-button {
-      background-color: #1db954;
-      color: white;
-      padding: 10px 25px;
-      border: none;
-      border-radius: 30px;
-      font-size: 1rem;
-      cursor: pointer;
-      margin-bottom: 40px;
-    }
-    .back-button:hover {
-      background-color: #17a94a;
+    .error {
+      color: red;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <h1>Your Mood-based Songs</h1>
+  <h1>Your Mood-Based Playlist 🎵</h1>
+  <div id="error" class="error"></div>
+  <div class="tracks-container" id="tracksContainer"></div>
 
-  <div class="player-card">
-    <img class="cover" src="https://i.scdn.co/image/ab67616d0000b2731f4f9cdd9e3c86f14c85b7d3" alt="Cover Image">
-    <div class="song-title">Song Title</div>
-    <div class="artist">Artist Name</div>
-    <audio controls src="your_preview_url_here.mp3"></audio>
-  </div>
+  <script>
+    // Get token and moods from sessionStorage or URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token') || sessionStorage.getItem("token");
+    const moods = JSON.parse(sessionStorage.getItem("selectedMoods") || "[]");
 
-  <button class="back-button" onclick="window.location.href='mood.html'">Back to Mood</button>
+    if (!token || moods.length === 0) {
+      document.getElementById("error").innerText = "Missing token or moods. Please go back.";
+    } else {
+      // Save token for future use
+      sessionStorage.setItem("token", token);
 
-  <!-- In JS you can dynamically fill song data -->
+      fetch("https://moodic-backend.onrender.com/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, moods })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("tracksContainer");
+        if (data.error || !data.tracks) {
+          document.getElementById("error").innerText = "Something went wrong. Try again.";
+          return;
+        }
+
+        if (data.tracks.length === 0) {
+          container.innerHTML = "<p>No tracks found for the selected mood(s).</p>";
+          return;
+        }
+
+        data.tracks.forEach(track => {
+          const div = document.createElement("div");
+          div.className = "track";
+          div.innerHTML = `
+            <img src="${track.image}" alt="${track.name}">
+            <h3>${track.name}</h3>
+            <p>${track.artist}</p>
+            ${track.preview_url ? `<audio controls src="${track.preview_url}"></audio>` : "<p>No preview available</p>"}
+          `;
+          container.appendChild(div);
+        });
+      })
+      .catch(err => {
+        document.getElementById("error").innerText = "Network error. Please try again.";
+        console.error(err);
+      });
+    }
+  </script>
 </body>
 </html>
