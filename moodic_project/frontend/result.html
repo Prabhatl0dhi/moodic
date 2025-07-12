@@ -12,12 +12,10 @@
       padding: 0;
       text-align: center;
     }
-
     h1 {
       margin-top: 40px;
       font-size: 2.5rem;
     }
-
     .tracks-container {
       display: flex;
       flex-wrap: wrap;
@@ -26,7 +24,6 @@
       gap: 20px;
       padding: 0 20px 50px;
     }
-
     .track {
       background: rgba(255, 255, 255, 0.05);
       border-radius: 15px;
@@ -36,32 +33,26 @@
       backdrop-filter: blur(10px);
       transition: transform 0.2s ease;
     }
-
     .track:hover {
       transform: scale(1.03);
     }
-
     .track img {
       width: 100%;
       border-radius: 12px;
     }
-
     .track h3 {
       margin: 10px 0 5px;
       font-size: 1.2rem;
     }
-
     .track p {
       margin: 0 0 10px;
       font-size: 0.95rem;
       color: #ccc;
     }
-
     audio {
       width: 100%;
       outline: none;
     }
-
     .error {
       color: red;
       margin-top: 20px;
@@ -74,40 +65,29 @@
   <div class="tracks-container" id="tracksContainer"></div>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token') || sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const storedSongs = sessionStorage.getItem("songs");
 
     if (!token || !storedSongs) {
       document.getElementById("error").innerText = "Missing token or tracks. Please go back.";
     } else {
-      try {
-        sessionStorage.setItem("token", token);
-        const tracks = JSON.parse(storedSongs);
-        console.log("🎵 Tracks loaded:", tracks);
+      const tracks = JSON.parse(storedSongs);
+      const container = document.getElementById("tracksContainer");
 
-        const container = document.getElementById("tracksContainer");
-
-        if (!Array.isArray(tracks) || tracks.length === 0) {
-          container.innerHTML = "<p>No tracks found for the selected mood(s).</p>";
-        } else {
-          tracks.forEach(track => {
-            const div = document.createElement("div");
-            div.className = "track";
-            div.innerHTML = `
-              <img src="${track.image}" alt="${track.name}">
-              <h3>${track.name}</h3>
-              <p>${track.artist}</p>
-              ${track.preview_url 
-                ? `<audio controls src="${track.preview_url}"></audio>` 
-                : `<p><a href="${track.spotify_url}" target="_blank">Listen on Spotify</a></p>`}
-            `;
-            container.appendChild(div);
-          });
-        }
-      } catch (err) {
-        console.error("Error parsing songs:", err);
-        document.getElementById("error").innerText = "Something went wrong. Please try again.";
+      if (!Array.isArray(tracks) || tracks.length === 0) {
+        container.innerHTML = "<p>No tracks found for the selected mood(s).</p>";
+      } else {
+        tracks.forEach(track => {
+          const div = document.createElement("div");
+          div.className = "track";
+          div.innerHTML = `
+            <img src="${track.image}" alt="${track.name}">
+            <h3>${track.name}</h3>
+            <p>${track.artist}</p>
+            ${track.preview_url ? `<audio controls src="${track.preview_url}"></audio>` : "<p>No preview available</p>"}
+          `;
+          container.appendChild(div);
+        });
       }
     }
   </script>
