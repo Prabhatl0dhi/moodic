@@ -137,7 +137,8 @@
           alert("No songs found for selected mood and language.");
           return;
         }
-        sessionStorage.setItem("songs", JSON.stringify(data.tracks));
+        sessionStorage.setItem("playlists", JSON.stringify(data.playlists));
+
         window.location.href = "result.html";
       })
       .catch(err => {
