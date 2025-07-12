@@ -13,32 +13,9 @@ CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 
-# Mood to audio feature map
-mood_audio_map = {
-    "Happy": {"min_valence": 0.7, "min_energy": 0.6},
-    "Sad": {"max_valence": 0.4, "max_energy": 0.5},
-    "Energetic": {"min_energy": 0.8},
-    "Romantic": {"min_valence": 0.6, "max_energy": 0.6},
-    "Chill": {"max_energy": 0.4, "min_valence": 0.4, "max_valence": 0.7},
-    "Angry": {"min_energy": 0.8, "max_valence": 0.3},
-    "Motivated": {"min_energy": 0.7, "min_valence": 0.6},
-    "Nostalgic": {"max_valence": 0.5, "min_acousticness": 0.3}
-}
-
-# Basic language → market mapping
-language_market_map = {
-    "english": "US",
-    "hindi": "IN",
-    "punjabi": "IN",
-    "bengali": "IN",
-    "telugu": "IN",
-    "tamil": "IN",
-    "kannada": "IN"
-}
-
 @app.route("/")
 def home():
-    return "Moodic backend is running."
+    return "Moodic backend is running (Playlist version)."
 
 @app.route("/login")
 def login():
@@ -74,7 +51,7 @@ def callback():
     return redirect(f"https://moodic.vercel.app/mood.html?token={access_token}")
 
 @app.route("/recommend", methods=["POST"])
-def recommend():
+def recommend_playlists():
     data = request.get_json()
     token = data.get("token")
     moods = data.get("moods", [])
@@ -83,49 +60,29 @@ def recommend():
     if not token or not moods:
         return jsonify({"error": "Missing token or moods"}), 400
 
+    query = f"{'+'.join(moods)}+{language}+playlist"
     headers = {
         "Authorization": f"Bearer {token}"
     }
-
-    market = language_market_map.get(language, "US")
-
-    # Combine audio filters from all moods
-    audio_features = {}
-    for mood in moods:
-        filters = mood_audio_map.get(mood.capitalize())
-        if filters:
-            for key, value in filters.items():
-                if key.startswith("min_"):
-                    audio_features[key] = max(audio_features.get(key, 0), value)
-                elif key.startswith("max_"):
-                    audio_features[key] = min(audio_features.get(key, 1), value)
-
-    seed_genres = "pop"
-
     params = {
-        "limit": 30,
-        "market": market,
-        "seed_genres": seed_genres,
-        **audio_features
+        "q": query,
+        "type": "playlist",
+        "limit": 10
     }
 
-    res = requests.get("https://api.spotify.com/v1/recommendations", headers=headers, params=params)
+    res = requests.get("https://api.spotify.com/v1/search", headers=headers, params=params)
 
     if res.status_code != 200:
-        print("Spotify API error:", res.text)
         return jsonify({"error": "Spotify API error", "details": res.text})
 
-    tracks = []
-    for item in res.json().get("tracks", []):
-        if item["preview_url"]:  # only include playable tracks
-            tracks.append({
-                "name": item["name"],
-                "artist": item["artists"][0]["name"],
-                "preview_url": item["preview_url"],
-                "image": item["album"]["images"][0]["url"] if item["album"]["images"] else ""
-            })
+    playlists = []
+    items = res.json().get("playlists", {}).get("items", [])
+    for item in items:
+        playlists.append({
+            "name": item["name"],
+            "image": item["images"][0]["url"] if item["images"] else "",
+            "spotify_url": item["external_urls"]["spotify"],
+            "owner": item["owner"]["display_name"]
+        })
 
-    return jsonify({"tracks": tracks[:20]})  # return only 20 at max
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    return jsonify({"playlists": playlists})
