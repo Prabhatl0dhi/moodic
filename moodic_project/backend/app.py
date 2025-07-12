@@ -13,6 +13,22 @@ CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 
+# Mood → Audio Features Mapping
+mood_audio_map = {
+    "Happy": {"min_valence": 0.7, "min_energy": 0.6},
+    "Sad": {"max_valence": 0.4, "max_energy": 0.5},
+    "Energetic": {"min_energy": 0.8},
+    "Romantic": {"min_valence": 0.6, "max_energy": 0.6},
+    "Chill": {"max_energy": 0.4, "min_valence": 0.4, "max_valence": 0.7},
+    "Angry": {"min_energy": 0.8, "max_valence": 0.3},
+    "Motivated": {"min_energy": 0.7, "min_valence": 0.6},
+    "Nostalgic": {"max_valence": 0.5, "min_acousticness": 0.3}
+}
+
+@app.route("/")
+def home():
+    return "Moodic backend is running."
+
 @app.route("/login")
 def login():
     auth_url = "https://accounts.spotify.com/authorize"
@@ -51,42 +67,37 @@ def recommend():
     data = request.get_json()
     token = data.get("token")
     moods = data.get("moods", [])
-    language = data.get("language", "english")
+    language = data.get("language", "english").lower()
 
     if not token or not moods:
         return jsonify({"error": "Missing token or moods"}), 400
+
+    mood = moods[0]  # only use the first one for now
+    audio_filter = mood_audio_map.get(mood.capitalize(), {})
 
     headers = {
         "Authorization": f"Bearer {token}"
     }
 
+    params = {
+        "limit": 20,
+        "seed_genres": "pop",  # we can enhance this later based on mood/lang
+        **audio_filter
+    }
+
+    res = requests.get("https://api.spotify.com/v1/recommendations", headers=headers, params=params)
+
+    if res.status_code != 200:
+        return jsonify({"error": "Spotify API error", "details": res.text})
+
     tracks = []
-    for mood in moods:
-        query = f"{mood} {language} music"
-        params = {
-            "q": query,
-            "type": "track",
-            "limit": 5
-        }
-        res = requests.get("https://api.spotify.com/v1/search", headers=headers, params=params)
-
-        if res.status_code != 200:
-            continue
-
-        items = res.json().get("tracks", {}).get("items", [])
-        for item in items:
-            tracks.append({
-                "name": item["name"],
-                "artist": item["artists"][0]["name"],
-                "preview_url": item["preview_url"],
-                "image": item["album"]["images"][0]["url"] if item["album"]["images"] else ""
-            })
+    items = res.json().get("tracks", [])
+    for item in items:
+        tracks.append({
+            "name": item["name"],
+            "artist": item["artists"][0]["name"],
+            "preview_url": item["preview_url"],
+            "image": item["album"]["images"][0]["url"] if item["album"]["images"] else ""
+        })
 
     return jsonify({"tracks": tracks})
-
-@app.route("/")
-def home():
-    return "Moodic backend is running."
-
-if __name__ == "__main__":
-    app.run(debug=True)
