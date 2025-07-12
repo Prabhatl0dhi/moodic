@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Moodic - Results</title>
+  <title>Moodic - Playlists</title>
   <style>
     body {
       background: linear-gradient(to bottom right, #121212, #1DB954);
@@ -12,11 +12,13 @@
       padding: 0;
       text-align: center;
     }
+
     h1 {
       margin-top: 40px;
       font-size: 2.5rem;
     }
-    .tracks-container {
+
+    .playlists-container {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
@@ -24,7 +26,8 @@
       gap: 20px;
       padding: 0 20px 50px;
     }
-    .track {
+
+    .playlist {
       background: rgba(255, 255, 255, 0.05);
       border-radius: 15px;
       padding: 20px;
@@ -33,26 +36,43 @@
       backdrop-filter: blur(10px);
       transition: transform 0.2s ease;
     }
-    .track:hover {
+
+    .playlist:hover {
       transform: scale(1.03);
     }
-    .track img {
+
+    .playlist img {
       width: 100%;
       border-radius: 12px;
     }
-    .track h3 {
+
+    .playlist h3 {
       margin: 10px 0 5px;
       font-size: 1.2rem;
     }
-    .track p {
+
+    .playlist p {
       margin: 0 0 10px;
       font-size: 0.95rem;
       color: #ccc;
     }
-    audio {
-      width: 100%;
-      outline: none;
+
+    .playlist a {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 16px;
+      background: #1DB954;
+      color: black;
+      border-radius: 20px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.2s;
     }
+
+    .playlist a:hover {
+      background: #1ed760;
+    }
+
     .error {
       color: red;
       margin-top: 20px;
@@ -60,31 +80,31 @@
   </style>
 </head>
 <body>
-  <h1>Your Mood-Based Playlist 🎵</h1>
+  <h1>Your Mood-Based Playlists 🎶</h1>
   <div id="error" class="error"></div>
-  <div class="tracks-container" id="tracksContainer"></div>
+  <div class="playlists-container" id="playlistsContainer"></div>
 
   <script>
     const token = sessionStorage.getItem("token");
-    const storedSongs = sessionStorage.getItem("songs");
+    const stored = sessionStorage.getItem("playlists");
 
-    if (!token || !storedSongs) {
-      document.getElementById("error").innerText = "Missing token or tracks. Please go back.";
+    if (!token || !stored) {
+      document.getElementById("error").innerText = "Missing token or playlists. Please go back.";
     } else {
-      const tracks = JSON.parse(storedSongs);
-      const container = document.getElementById("tracksContainer");
+      const playlists = JSON.parse(stored);
+      const container = document.getElementById("playlistsContainer");
 
-      if (!Array.isArray(tracks) || tracks.length === 0) {
-        container.innerHTML = "<p>No tracks found for the selected mood(s).</p>";
+      if (!Array.isArray(playlists) || playlists.length === 0) {
+        container.innerHTML = "<p>No playlists found for the selected mood(s).</p>";
       } else {
-        tracks.forEach(track => {
+        playlists.forEach(playlist => {
           const div = document.createElement("div");
-          div.className = "track";
+          div.className = "playlist";
           div.innerHTML = `
-            <img src="${track.image}" alt="${track.name}">
-            <h3>${track.name}</h3>
-            <p>${track.artist}</p>
-            ${track.preview_url ? `<audio controls src="${track.preview_url}"></audio>` : "<p>No preview available</p>"}
+            <img src="${playlist.image}" alt="${playlist.name}">
+            <h3>${playlist.name}</h3>
+            <p>By ${playlist.owner}</p>
+            <a href="${playlist.spotify_url}" target="_blank">Open in Spotify</a>
           `;
           container.appendChild(div);
         });
